@@ -1,0 +1,23 @@
+{
+  "name": "@smartwater/water-warrior",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/App.tsx",
+  "scripts": {
+    "dev": "npx expo start",
+    "build:android": "npx expo build:android",
+    "build:ios": "npx expo build:ios",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@smartwater/shared-types": "*",
+    "expo": "~52.0.0",
+    "expo-status-bar": "~2.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.0"
+  },
+  "devDependencies": {
+    "@types/react": "~18.3.0",
+    "typescript": "^5.7.0"
+  }
+}

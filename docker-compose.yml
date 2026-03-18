@@ -1,0 +1,185 @@
+services:
+  # ============================================
+  # DATA TIER
+  # ============================================
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: sw-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: smartwater
+      POSTGRES_USER: smartwater
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_dev_only}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartwater"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: sw-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: sw-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./gateway/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+
+  minio:
+    image: minio/minio:latest
+    container_name: sw-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9090:9090"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9090"
+
+  # ============================================
+  # API GATEWAY
+  # ============================================
+  traefik:
+    image: traefik:v3.3
+    container_name: sw-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - ./gateway/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./gateway/dynamic:/etc/traefik/dynamic:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  # ============================================
+  # APPLICATION TIER
+  # ============================================
+  api-server:
+    build:
+      context: .
+      dockerfile: services/api-server/Dockerfile
+    container_name: sw-api-server
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=smartwater
+      - POSTGRES_USER=smartwater
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme_dev_only}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      - JWT_EXPIRES_IN=7d
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin
+      - S3_BUCKET=smartwater-uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/ws`)"
+      - "traefik.http.services.api.loadbalancer.server.port=3001"
+
+  iot-ingestion:
+    build:
+      context: .
+      dockerfile: services/iot-ingestion/Dockerfile
+    container_name: sw-iot-ingestion
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - MQTT_BROKER_URL=mqtt://mosquitto:1883
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=smartwater
+      - POSTGRES_USER=smartwater
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme_dev_only}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/worker/Dockerfile
+    container_name: sw-worker
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=smartwater
+      - POSTGRES_USER=smartwater
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme_dev_only}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_DEFAULT_CHAT_ID=${TELEGRAM_DEFAULT_CHAT_ID:-}
+      - AWS_SES_REGION=${AWS_SES_REGION:-us-east-1}
+      - AWS_SES_FROM_EMAIL=${AWS_SES_FROM_EMAIL:-noreply@smartwaterverse.com}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  iot-simulator:
+    build:
+      context: .
+      dockerfile: services/iot-simulator/Dockerfile
+    container_name: sw-iot-simulator
+    restart: unless-stopped
+    environment:
+      - MQTT_BROKER_URL=mqtt://mosquitto:1883
+      - SIMULATOR_SITE_COUNT=20
+      - SIMULATOR_INTERVAL_MS=5000
+    depends_on:
+      mosquitto:
+        condition: service_started
+    profiles:
+      - dev
+
+volumes:
+  pg-data:
+  redis-data:
+  mosquitto-data:
+  mosquitto-log:
+  minio-data:

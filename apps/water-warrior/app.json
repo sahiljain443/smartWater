@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Water Warrior",
+    "slug": "water-warrior",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "waterwarrior",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#2577eb"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.smartwaterverse.waterwarrior"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#2577eb"
+      },
+      "package": "com.smartwaterverse.waterwarrior"
+    }
+  }
+}
