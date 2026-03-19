@@ -85,11 +85,6 @@ Before defining the build plan, here is how leading platforms compare to the roa
 └─────────────┼──────────────────────┼────────────────────┼───────────┘
               │          HTTPS / WebSocket                 │
 ┌─────────────┼──────────────────────┼────────────────────┼───────────┐
-│             │       API GATEWAY (Traefik)               │           │
-│             │    Rate Limiting, TLS, Routing             │           │
-└─────────────┼──────────────────────┼────────────────────┼───────────┘
-              │                      │                    │
-┌─────────────┼──────────────────────┼────────────────────┼───────────┐
 │             ▼                      ▼                    ▼           │
 │  APPLICATION TIER (3 services — optimized for small team)          │
 │                                                                     │
@@ -154,9 +149,8 @@ smartwater/
 ├── turbo.json                      # Turborepo config
 ├── package.json                    # Root workspace config
 │
-├── gateway/                        # API Gateway (Traefik config)
-│   ├── traefik.yml
-│   └── dynamic/                    # Route configs per service
+├── config/
+│   └── mosquitto/                  # MQTT broker config
 │
 ├── services/
 │   ├── api-server/                 # Unified REST API + WebSocket (Fastify)
@@ -430,7 +424,6 @@ This is the core of the system. Every feature below maps to a React page/module.
 | **Frontend — Ops Dashboard** | React 18 + TypeScript, Vite, TailwindCSS, Recharts, React Query, Zustand | Modern React SPA with real-time data visualization |
 | **Frontend — Consumer App** | React Native (Expo) + TypeScript | Native mobile experience; Expo for fast iteration |
 | **Frontend — RWA Portal** | React 18 (shared component library with Ops) | Lightweight read-only dashboard |
-| **API Gateway** | Traefik (Docker-native) | Auto-discovery of Docker services, built-in Let's Encrypt, rate limiting |
 | **Backend — API Server** | Node.js (Fastify) + TypeScript | Single consolidated API for ops, consumer, and admin; fast, schema-validated |
 | **Backend — IoT Ingestion** | Node.js + TypeScript | MQTT subscriber, device management, data normalization |
 | **Backend — Worker** | Node.js + TypeScript (Bull queues) | Rule engine execution, notifications, report generation, scheduled jobs |
@@ -458,7 +451,6 @@ This is the core of the system. Every feature below maps to a React page/module.
 - [ ] Monorepo setup (Turborepo/Nx) with shared packages
 - [ ] Docker Compose with all data services (TimescaleDB, PostgreSQL, Redis, MinIO, Mosquitto)
 - [ ] Custom JWT auth with RBAC: SuperAdmin, SiteManager, Technician, SocietyAdmin, Resident
-- [ ] API Gateway (Traefik) configuration
 - [ ] CI/CD pipeline (lint, test, build, push Docker images)
 - [ ] Shared UI component library (design system)
 
@@ -600,7 +592,7 @@ This is the core of the system. Every feature below maps to a React page/module.
 - **Metrics:** Prometheus exporters on every service + Grafana dashboards
 - **Logging:** Structured JSON logs → Loki → Grafana
 - **Tracing:** OpenTelemetry → Jaeger (for debugging cross-service requests)
-- **Uptime:** Health check endpoints on every service; Traefik auto-routing
+- **Uptime:** Health check endpoints on every service
 
 ### 8.4 Offline & Resilience
 - **Edge (IoT Gateway):** Store & Forward — zero data loss per roadmap

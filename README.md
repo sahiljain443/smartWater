@@ -11,10 +11,6 @@
 └──────────────────────────┬─────────────────────────────────┘
                            │
 ┌──────────────────────────┴─────────────────────────────────┐
-│  API Gateway (Traefik)                                     │
-└──────────────────────────┬─────────────────────────────────┘
-                           │
-┌──────────────────────────┴─────────────────────────────────┐
 │  BACKEND                                                   │
 │  api-server (Fastify)  ·  iot-ingestion  ·  worker (Bull)  │
 └──────────────────────────┬─────────────────────────────────┘
@@ -44,7 +40,7 @@ smartwater/
 ├── db/
 │   ├── init/                PostgreSQL extensions
 │   └── migrations/          SQL schema
-├── gateway/                 Traefik + Mosquitto config
+├── config/                  Mosquitto config
 └── docker-compose.yml       Full local dev stack
 ```
 

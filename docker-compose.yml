@@ -43,7 +43,7 @@ services:
       - "1883:1883"
       - "9001:9001"
     volumes:
-      - ./gateway/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - mosquitto-data:/mosquitto/data
       - mosquitto-log:/mosquitto/log
 
@@ -60,21 +60,6 @@ services:
     volumes:
       - minio-data:/data
     command: server /data --console-address ":9090"
-
-  # ============================================
-  # API GATEWAY
-  # ============================================
-  traefik:
-    image: traefik:v3.3
-    container_name: sw-traefik
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "8080:8080"
-    volumes:
-      - ./gateway/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./gateway/dynamic:/etc/traefik/dynamic:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
 
   # ============================================
   # APPLICATION TIER
@@ -107,10 +92,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/ws`)"
-      - "traefik.http.services.api.loadbalancer.server.port=3001"
 
   iot-ingestion:
     build:
